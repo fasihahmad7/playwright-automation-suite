@@ -1,0 +1,79 @@
+{
+  "mcpServers": {
+    "playwright-testing": {
+      "command": "uvx",
+      "args": ["mcp-playwright@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "INFO"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "run_test",
+        "get_test_results",
+        "capture_screenshot",
+        "get_page_info"
+      ],
+      "disabledTools": []
+    },
+    "web-automation": {
+      "command": "uvx", 
+      "args": ["mcp-web-automation@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "INFO"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "navigate_to_url",
+        "click_element",
+        "fill_form",
+        "wait_for_element",
+        "get_element_text"
+      ],
+      "disabledTools": []
+    },
+    "test-reporting": {
+      "command": "uvx",
+      "args": ["mcp-allure-reporting@latest"], 
+      "env": {
+        "FASTMCP_LOG_LEVEL": "INFO"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "generate_report",
+        "add_attachment",
+        "create_test_step",
+        "set_test_status"
+      ],
+      "disabledTools": []
+    },
+    "database-validation": {
+      "command": "uvx",
+      "args": ["mcp-database@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "INFO"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "execute_query",
+        "validate_data",
+        "check_record_exists"
+      ],
+      "disabledTools": []
+    },
+    "api-testing": {
+      "command": "uvx",
+      "args": ["mcp-api-client@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "INFO"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "send_request",
+        "validate_response",
+        "check_status_code",
+        "extract_response_data"
+      ],
+      "disabledTools": []
+    }
+  }
+}
