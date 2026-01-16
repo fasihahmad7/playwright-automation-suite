@@ -1,7 +1,7 @@
 # 🎯 Complete Playwright Test Automation Suite with MCP Integration
 
-[![Playwright Tests](https://img.shields.io/badge/tests-32%2F32%20passing-brightgreen)](https://github.com/yourusername/playwright-automation-suite)
-[![Test Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/yourusername/playwright-automation-suite)
+[![Playwright Tests](https://img.shields.io/badge/tests-32%2F32%20passing-brightgreen)](https://github.com/fasihahmad7/playwright-automation-suite)
+[![Test Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/fasihahmad7/playwright-automation-suite)
 [![Playwright](https://img.shields.io/badge/playwright-1.40.0-blue)](https://playwright.dev/)
 [![TypeScript](https://img.shields.io/badge/typescript-5.0-blue)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -54,7 +54,7 @@ This isn't just another test automation project - it's a **complete learning eco
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/yourusername/playwright-automation-suite.git
+git clone https://github.com/fasihahmad7/playwright-automation-suite.git
 cd playwright-automation-suite
 
 # 2. Install dependencies
