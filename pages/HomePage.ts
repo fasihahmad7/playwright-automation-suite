@@ -1,4 +1,4 @@
-import { Page, Locator } from '@playwright/test';
+import { Page, Locator, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 import { LoginPage } from './LoginPage';
 import { ProductsPage } from './ProductsPage';
@@ -22,6 +22,9 @@ export class HomePage extends BasePage {
   readonly categoryProducts: Locator;
   readonly brandsProducts: Locator;
   readonly firstProduct: Locator;
+  readonly fullFledgedHeading: Locator;
+  readonly scrollUpArrow: Locator;
+  readonly cartModal: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -35,11 +38,14 @@ export class HomePage extends BasePage {
     this.featuresItems = page.locator('.features_items');
     this.subscriptionEmailInput = page.locator('#susbscribe_email');
     this.subscribeButton = page.locator('#subscribe');
-    this.subscriptionSuccessMessage = page.locator('.alert-success');
+    this.subscriptionSuccessMessage = page.locator('#success-subscribe');
     this.recommendedItems = page.locator('.recommended_items');
     this.categoryProducts = page.locator('.category-products');
     this.brandsProducts = page.locator('.brands_products');
     this.firstProduct = page.locator('.features_items .col-sm-4').first();
+    this.fullFledgedHeading = page.locator('#slider-carousel .item.active h2');
+    this.scrollUpArrow = page.locator('#scrollUp');
+    this.cartModal = page.locator('#cartModal');
   }
 
   async navigateToHomePage() {
@@ -50,7 +56,7 @@ export class HomePage extends BasePage {
   async isHomePageVisible(): Promise<boolean> {
     try {
       // Wait for page to load and check for key elements
-      await this.page.waitForLoadState('networkidle', { timeout: 10000 });
+      await this.page.waitForLoadState('load', { timeout: 10000 });
       
       // Check for multiple indicators that we're on the home page
       const logoVisible = await this.logo.isVisible().catch(() => false);
@@ -75,6 +81,9 @@ export class HomePage extends BasePage {
 
   async clickContactUs(): Promise<ContactUsPage> {
     await this.clickElement(this.contactUsButton);
+    // Wait for full load: the form's submit handler (confirm dialog) is bound by page JS,
+    // and submitting before it is attached silently skips the success message.
+    await this.page.waitForURL('**/contact_us', { waitUntil: 'load' });
     return new ContactUsPage(this.page);
   }
 
@@ -85,6 +94,7 @@ export class HomePage extends BasePage {
 
   async clickCart(): Promise<CartPage> {
     await this.clickElement(this.cartButton);
+    await this.page.waitForURL('**/view_cart');
     return new CartPage(this.page);
   }
 
@@ -132,65 +142,43 @@ export class HomePage extends BasePage {
     return await this.recommendedItems.isVisible();
   }
 
-  async addRecommendedItemToCart() {
-    try {
-      await this.scrollToElement(this.recommendedItems);
-      const addToCartButton = this.recommendedItems.locator('.add-to-cart').first();
-      await this.clickElement(addToCartButton);
-    } catch (error) {
-      console.log('Could not add recommended item to cart:', error);
-    }
+  /** Adds the first visible recommended product and returns its name. */
+  async addRecommendedItemToCart(): Promise<string> {
+    await this.scrollToElement(this.recommendedItems);
+    const item = this.recommendedItems.locator('.item.active .productinfo').first();
+    const name = (await this.getText(item.locator('p'))).trim();
+    await this.clickElement(item.locator('.add-to-cart'));
+    await this.cartModal.waitFor({ state: 'visible', timeout: 15000 });
+    return name;
+  }
+
+  async clickViewCartInModal(): Promise<CartPage> {
+    await this.clickElement(this.cartModal.locator('a[href="/view_cart"]'));
+    await this.page.waitForURL('**/view_cart');
+    return new CartPage(this.page);
   }
 
   async clickScrollUpArrow() {
-    try {
-      const scrollUpArrow = this.page.locator('#scrollUp');
-      await this.clickElement(scrollUpArrow);
-    } catch (error) {
-      console.log('Scroll up arrow not found:', error);
-    }
+    await this.clickElement(this.scrollUpArrow);
   }
 
+  /** Current vertical scroll offset — 0 means the page is at the very top. */
+  async getScrollY(): Promise<number> {
+    return await this.page.evaluate(() => window.scrollY);
+  }
+
+  /** True only when the hero heading is actually inside the viewport (i.e. the page is scrolled to the top). */
   async isFullFledgedTextVisible(): Promise<boolean> {
     try {
-      // Look for the text in multiple possible locations
-      const textSelectors = [
-        'text=Full-Fledged practice website for Automation Engineers',
-        '.carousel-inner',
-        '.item.active',
-        'h2'
-      ];
-      
-      for (const selector of textSelectors) {
-        try {
-          const element = this.page.locator(selector);
-          if (await element.isVisible()) {
-            const text = await element.textContent();
-            if (text && text.toLowerCase().includes('full-fledged')) {
-              return true;
-            }
-          }
-        } catch {
-          continue;
-        }
-      }
-      
-      // Alternative: check page content directly
-      const pageContent = await this.page.content();
-      return pageContent.toLowerCase().includes('full-fledged') || 
-             pageContent.toLowerCase().includes('automation engineers');
+      await expect(this.fullFledgedHeading).toBeInViewport({ timeout: 10000 });
+      return true;
     } catch {
       return false;
     }
   }
 
   async clickHome(): Promise<HomePage> {
-    try {
-      const homeButton = this.page.locator('a[href="/"]');
-      await this.clickElement(homeButton);
-      return new HomePage(this.page);
-    } catch {
-      return this;
-    }
+    await this.clickElement(this.page.locator('.shop-menu a[href="/"]'));
+    return new HomePage(this.page);
   }
 }

@@ -26,7 +26,8 @@ export class RegistrationPage extends BasePage {
 
   constructor(page: Page) {
     super(page);
-    this.enterAccountInfoText = page.locator('.title.text-center b');
+    // Two '.title.text-center b' headers exist on this page; pick the right one explicitly
+    this.enterAccountInfoText = page.locator('.title.text-center b').filter({ hasText: /enter account information/i });
     this.mrRadioButton = page.locator('#id_gender1');
     this.mrsRadioButton = page.locator('#id_gender2');
     this.passwordField = page.locator('[data-qa="password"]');
@@ -51,10 +52,7 @@ export class RegistrationPage extends BasePage {
   async isEnterAccountInformationVisible(): Promise<boolean> {
     try {
       await this.enterAccountInfoText.waitFor({ timeout: 10000 });
-      const text = await this.getText(this.enterAccountInfoText);
-      // Use case-insensitive comparison
-      return text.toUpperCase().includes('ENTER ACCOUNT INFORMATION') || 
-             text.toUpperCase().includes('ACCOUNT INFORMATION');
+      return await this.enterAccountInfoText.isVisible();
     } catch {
       return false;
     }

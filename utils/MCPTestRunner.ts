@@ -23,7 +23,7 @@ export class MCPTestRunner {
             await this.captureFailureScreenshot(testName);
 
             // Mark test as failed
-            await this.setTestStatus(testName, 'FAILED', error.message);
+            await this.setTestStatus(testName, 'FAILED', (error as Error).message);
 
             throw error;
         }
@@ -33,7 +33,7 @@ export class MCPTestRunner {
         try {
             // Use MCP web automation for navigation
             console.log(`[MCP] Navigating to: ${url}`);
-            await this.page.goto(url, { waitUntil: 'networkidle' });
+            await this.page.goto(url, { waitUntil: 'domcontentloaded' });
 
             // Validate navigation success
             const currentUrl = await this.page.url();
@@ -41,7 +41,7 @@ export class MCPTestRunner {
 
             return true;
         } catch (error) {
-            console.error(`[MCP] Navigation failed: ${error.message}`);
+            console.error(`[MCP] Navigation failed: ${(error as Error).message}`);
             return false;
         }
     }
@@ -59,7 +59,7 @@ export class MCPTestRunner {
             console.log(`[MCP] Successfully clicked: ${selector}`);
             return true;
         } catch (error) {
-            console.error(`[MCP] Failed to click ${selector}: ${error.message}`);
+            console.error(`[MCP] Failed to click ${selector}: ${(error as Error).message}`);
             return false;
         }
     }
@@ -75,7 +75,7 @@ export class MCPTestRunner {
             console.log(`[MCP] Successfully filled: ${selector}`);
             return true;
         } catch (error) {
-            console.error(`[MCP] Failed to fill ${selector}: ${error.message}`);
+            console.error(`[MCP] Failed to fill ${selector}: ${(error as Error).message}`);
             return false;
         }
     }
@@ -101,7 +101,7 @@ export class MCPTestRunner {
             return isVisible;
 
         } catch (error) {
-            console.error(`[MCP] Validation failed for ${selector}: ${error.message}`);
+            console.error(`[MCP] Validation failed for ${selector}: ${(error as Error).message}`);
             return false;
         }
     }
@@ -119,7 +119,7 @@ export class MCPTestRunner {
             console.log(`[MCP] Screenshot captured: ${filename}`);
             return filename;
         } catch (error) {
-            console.error(`[MCP] Screenshot capture failed: ${error.message}`);
+            console.error(`[MCP] Screenshot capture failed: ${(error as Error).message}`);
             return null;
         }
     }
@@ -135,12 +135,12 @@ export class MCPTestRunner {
             console.log(`[MCP] API validation result: ${isValid} (Expected: ${expectedStatus}, Actual: ${status})`);
             return isValid;
         } catch (error) {
-            console.error(`[MCP] API validation failed: ${error.message}`);
+            console.error(`[MCP] API validation failed: ${(error as Error).message}`);
             return false;
         }
     }
 
-    async executeCustomMCPAction(action: string, params: any = {}) {
+    async executeCustomMCPAction(action: string, params: Record<string, unknown> = {}) {
         try {
             console.log(`[MCP] Executing custom action: ${action}`, params);
 
@@ -158,7 +158,7 @@ export class MCPTestRunner {
                     return false;
             }
         } catch (error) {
-            console.error(`[MCP] Custom action failed: ${error.message}`);
+            console.error(`[MCP] Custom action failed: ${(error as Error).message}`);
             return false;
         }
     }
@@ -180,19 +180,19 @@ export class MCPTestRunner {
         }
     }
 
-    private async simulateDatabaseValidation(params: any): Promise<boolean> {
+    private async simulateDatabaseValidation(params: Record<string, unknown>): Promise<boolean> {
         console.log(`[MCP] Simulating database validation:`, params);
         // Simulate database check
         return true;
     }
 
-    private async simulateEmailVerification(params: any): Promise<boolean> {
+    private async simulateEmailVerification(params: Record<string, unknown>): Promise<boolean> {
         console.log(`[MCP] Simulating email verification:`, params);
         // Simulate email verification
         return true;
     }
 
-    private async simulatePerformanceCheck(params: any): Promise<boolean> {
+    private async simulatePerformanceCheck(params: Record<string, unknown>): Promise<boolean> {
         console.log(`[MCP] Simulating performance check:`, params);
         // Simulate performance metrics check
         return true;

@@ -16,11 +16,9 @@ export class TestCasesPage extends BasePage {
       await this.pageTitle.waitFor({ timeout: 10000 });
       const currentUrl = await this.getCurrentUrl();
       const titleText = await this.getText(this.pageTitle);
-      return currentUrl.includes('test_cases') && titleText.includes('TEST CASES');
+      return currentUrl.includes('test_cases') && titleText.toUpperCase().includes('TEST CASES');
     } catch {
-      // Alternative check - just verify URL contains test_cases
-      const currentUrl = await this.getCurrentUrl();
-      return currentUrl.includes('test_cases');
+      return false;
     }
   }
 }

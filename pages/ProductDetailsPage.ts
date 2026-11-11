@@ -22,20 +22,21 @@ export class ProductDetailsPage extends BasePage {
   constructor(page: Page) {
     super(page);
     this.productName = page.locator('.product-information h2');
-    this.productCategory = page.locator('.product-information p').nth(2);
+    this.productCategory = page.locator('.product-information p').filter({ hasText: 'Category:' });
     this.productPrice = page.locator('.product-information span span');
-    this.productAvailability = page.locator('.product-information p').nth(5);
-    this.productCondition = page.locator('.product-information p').nth(6);
-    this.productBrand = page.locator('.product-information p').nth(7);
+    this.productAvailability = page.locator('.product-information p').filter({ hasText: 'Availability:' });
+    this.productCondition = page.locator('.product-information p').filter({ hasText: 'Condition:' });
+    this.productBrand = page.locator('.product-information p').filter({ hasText: 'Brand:' });
     this.quantityInput = page.locator('#quantity');
     this.addToCartButton = page.locator('.btn.btn-default.cart');
     this.productImage = page.locator('.active > img');
-    this.writeReviewSection = page.locator('#reviews h2');
+    this.writeReviewSection = page.locator('a[href="#reviews"]');
     this.reviewerName = page.locator('#name');
     this.reviewerEmail = page.locator('#email');
     this.reviewText = page.locator('#review');
     this.submitReviewButton = page.locator('#button-review');
-    this.reviewSuccessMessage = page.locator('.alert-success');
+    // Page also has a (hidden) subscription .alert-success, so filter by text
+    this.reviewSuccessMessage = page.locator('.alert-success').filter({ hasText: 'Thank you for your review' });
   }
 
   async isProductDetailVisible(): Promise<boolean> {
@@ -102,6 +103,10 @@ export class ProductDetailsPage extends BasePage {
     }
   }
 
+  async waitForLoaded() {
+    await this.productName.waitFor({ timeout: 15000 });
+  }
+
   async setQuantity(quantity: string) {
     await this.quantityInput.clear();
     await this.fillElement(this.quantityInput, quantity);
@@ -112,13 +117,10 @@ export class ProductDetailsPage extends BasePage {
   }
 
   async clickViewCart(): Promise<CartPage> {
-    try {
-      const viewCartButton = this.page.locator('a[href="/view_cart"]');
-      await this.clickElement(viewCartButton);
-      return new CartPage(this.page);
-    } catch {
-      return new CartPage(this.page);
-    }
+    // The "Added!" modal's View Cart link (the header also has one, so scope to the modal)
+    await this.clickElement(this.page.locator('#cartModal a[href="/view_cart"]'));
+    await this.page.waitForURL('**/view_cart');
+    return new CartPage(this.page);
   }
 
   async isWriteReviewVisible(): Promise<boolean> {
@@ -140,9 +142,8 @@ export class ProductDetailsPage extends BasePage {
 
   async isReviewSuccessMessageVisible(): Promise<boolean> {
     try {
-      await this.reviewSuccessMessage.waitFor({ timeout: 5000 });
-      const text = await this.getText(this.reviewSuccessMessage);
-      return text.includes('Thank you for your review');
+      await this.reviewSuccessMessage.waitFor({ timeout: 10000 });
+      return await this.reviewSuccessMessage.isVisible();
     } catch {
       return false;
     }

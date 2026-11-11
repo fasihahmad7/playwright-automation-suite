@@ -10,12 +10,16 @@
     "test:ui": "npx playwright test --ui",
     "test:report": "npx playwright show-report",
     "test:allure": "allure generate allure-results --clean && allure open",
-    "test:mcp": "npx playwright test tests/MCPEnhancedTestSuite.spec.ts",
-    "test:mcp:headed": "npx playwright test tests/MCPEnhancedTestSuite.spec.ts --headed",
+    "test:mcp": "npx playwright test tests/MCPEnhancedTestSuite.spec.ts --project=chromium",
+    "test:mcp:headed": "npx playwright test tests/MCPEnhancedTestSuite.spec.ts --project=chromium --headed",
     "test:mcp:debug": "FASTMCP_LOG_LEVEL=DEBUG npx playwright test tests/MCPEnhancedTestSuite.spec.ts",
     "test:original": "npx playwright test tests/AutomationExerciseTestSuite.spec.ts",
+    "test:failures": "npx playwright test --config=playwright.failure-demo.config.ts",
+    "test:failures:headed": "npx playwright test --config=playwright.failure-demo.config.ts --headed",
+    "test:failures:report": "npx playwright show-report playwright-report-failures",
     "install:browsers": "npx playwright install",
     "test:chrome": "npx playwright test --project=chromium",
+    "test:chrome:headed": "npx playwright test --project=chromium --headed",
     "test:firefox": "npx playwright test --project=firefox",
     "test:safari": "npx playwright test --project=webkit",
     "test:mobile": "npx playwright test --project=mobile-chrome",
@@ -38,8 +42,5 @@
     "allure-playwright": "^2.15.1",
     "typescript": "^5.3.0"
   },
-  "dependencies": {
-    "dotenv": "^16.3.1",
-    "faker": "^6.6.6"
-  }
+  "dependencies": {}
 }

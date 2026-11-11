@@ -1,93 +1,88 @@
 import { Page, Locator } from '@playwright/test';
 import { BasePage } from './BasePage';
+import { CheckoutPage } from './CheckoutPage';
+import { LoginPage } from './LoginPage';
 
 export class CartPage extends BasePage {
-  readonly cartItems: Locator;
+  readonly cartRows: Locator;
   readonly totalPrice: Locator;
   readonly proceedToCheckoutButton: Locator;
-  readonly increaseQuantityButton: Locator;
-  readonly decreaseQuantityButton: Locator;
   readonly deleteFirstItemButton: Locator;
   readonly emptyCartMessage: Locator;
   readonly firstProductName: Locator;
   readonly firstProductPrice: Locator;
+  readonly checkoutModalMessage: Locator;
+  readonly checkoutModalRegisterLoginLink: Locator;
   readonly subscriptionEmailInput: Locator;
   readonly subscribeButton: Locator;
   readonly subscriptionSuccessMessage: Locator;
 
   constructor(page: Page) {
     super(page);
-    this.cartItems = page.locator('#cart_items .cart_info');
+    // One <tr> per product. (Note: '#cart_items .cart_info' is the table wrapper and
+    // is always present — even for an empty cart — so it must not be used for counting.)
+    this.cartRows = page.locator('#cart_info_table tbody tr');
     this.totalPrice = page.locator('.cart_total_price');
     this.proceedToCheckoutButton = page.locator('.btn.btn-default.check_out');
-    this.increaseQuantityButton = page.locator('.cart_quantity_up');
-    this.decreaseQuantityButton = page.locator('.cart_quantity_down');
     this.deleteFirstItemButton = page.locator('.cart_quantity_delete').first();
-    this.emptyCartMessage = page.locator('.empty_cart');
-    this.firstProductName = page.locator('#cart_items .cart_description h4 a');
-    this.firstProductPrice = page.locator('#cart_items .cart_price p');
+    this.emptyCartMessage = page.locator('#empty_cart');
+    this.firstProductName = page.locator('#cart_info_table .cart_description h4 a').first();
+    this.firstProductPrice = page.locator('#cart_info_table .cart_price p').first();
+    this.checkoutModalMessage = page.locator('#checkoutModal .modal-body p').first();
+    this.checkoutModalRegisterLoginLink = page.locator('#checkoutModal a[href="/login"]');
     this.subscriptionEmailInput = page.locator('#susbscribe_email');
     this.subscribeButton = page.locator('#subscribe');
-    this.subscriptionSuccessMessage = page.locator('.alert-success');
+    this.subscriptionSuccessMessage = page.locator('#success-subscribe');
   }
 
   async getCartItemsCount(): Promise<number> {
-    try {
-      return await this.cartItems.count();
-    } catch {
-      return 0;
-    }
+    return await this.cartRows.count();
   }
 
   async isCartEmpty(): Promise<boolean> {
-    try {
-      const itemsCount = await this.getCartItemsCount();
-      const emptyMessageVisible = await this.emptyCartMessage.isVisible();
-      return itemsCount === 0 || emptyMessageVisible;
-    } catch {
-      return true;
-    }
+    return (await this.getCartItemsCount()) === 0;
   }
 
+  /** Total of the first line item (each row has its own total cell). */
   async getTotalPrice(): Promise<string> {
     try {
-      await this.totalPrice.waitFor({ timeout: 5000 });
-      return await this.getText(this.totalPrice);
+      await this.totalPrice.first().waitFor({ timeout: 5000 });
+      return (await this.getText(this.totalPrice.first())).trim();
     } catch {
       return '';
     }
   }
 
-  async proceedToCheckout() {
-    try {
-      await this.clickElement(this.proceedToCheckoutButton);
-    } catch (error) {
-      console.log('Proceed to checkout button not found or not clickable');
-    }
+  async getQuantities(): Promise<string[]> {
+    const quantities = await this.page.locator('#cart_info_table .cart_quantity button').allTextContents();
+    return quantities.map(q => q.trim());
   }
 
-  async increaseQuantity() {
-    try {
-      await this.clickElement(this.increaseQuantityButton);
-    } catch (error) {
-      console.log('Increase quantity button not found');
-    }
+  async getProductNames(): Promise<string[]> {
+    const names = await this.page.locator('#cart_info_table .cart_description h4 a').allTextContents();
+    return names.map(n => n.trim());
   }
 
-  async decreaseQuantity() {
-    try {
-      await this.clickElement(this.decreaseQuantityButton);
-    } catch (error) {
-      console.log('Decrease quantity button not found');
-    }
+  async proceedToCheckout(): Promise<CheckoutPage> {
+    await this.clickElement(this.proceedToCheckoutButton);
+    return new CheckoutPage(this.page);
+  }
+
+  /** Guest checkout shows a "Register / Login" modal instead of the checkout page. */
+  async clickRegisterLoginInCheckoutModal(): Promise<LoginPage> {
+    await this.clickElement(this.checkoutModalRegisterLoginLink);
+    return new LoginPage(this.page);
   }
 
   async removeFirstItem() {
-    try {
-      await this.clickElement(this.deleteFirstItemButton);
-    } catch (error) {
-      console.log('Delete item button not found');
-    }
+    const before = await this.getCartItemsCount();
+    await this.clickElement(this.deleteFirstItemButton);
+    // Removal is an AJAX call followed by a DOM update — wait for the row to disappear
+    await this.page.waitForFunction(
+      expected => document.querySelectorAll('#cart_info_table tbody tr').length === expected,
+      before - 1,
+      { timeout: 10000 }
+    );
   }
 
   async deleteItem() {
@@ -97,7 +92,7 @@ export class CartPage extends BasePage {
   async getFirstProductName(): Promise<string> {
     try {
       await this.firstProductName.waitFor({ timeout: 5000 });
-      return await this.getText(this.firstProductName);
+      return (await this.getText(this.firstProductName)).trim();
     } catch {
       return '';
     }
@@ -106,7 +101,7 @@ export class CartPage extends BasePage {
   async getFirstProductPrice(): Promise<string> {
     try {
       await this.firstProductPrice.waitFor({ timeout: 5000 });
-      return await this.getText(this.firstProductPrice);
+      return (await this.getText(this.firstProductPrice)).trim();
     } catch {
       return '';
     }

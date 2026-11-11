@@ -6,7 +6,11 @@ yarn-error.log*
 
 # Test results
 test-results/
+test-results.json
+test-results.xml
 playwright-report/
+test-results-failures/
+playwright-report-failures/
 allure-results/
 allure-report/
 screenshots/
@@ -104,3 +108,5 @@ jspm_packages/
 /test-results/
 /playwright-report/
 /playwright/.cache/
+# Local presenter notes (not part of the suite)
+DEMO_SCRIPT.md

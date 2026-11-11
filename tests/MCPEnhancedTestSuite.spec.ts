@@ -6,6 +6,7 @@ import { MyAccountPage } from '../pages/MyAccountPage';
 import { ProductsPage } from '../pages/ProductsPage';
 import { TestDataProvider } from '../utils/TestDataProvider';
 import { MCPTestRunner } from '../utils/MCPTestRunner';
+import { ApiHelper, blockAds } from '../utils/ApiHelper';
 import { allure } from 'allure-playwright';
 
 test.describe('MCP Enhanced Automation Exercise Test Suite', () => {
@@ -15,6 +16,7 @@ test.describe('MCP Enhanced Automation Exercise Test Suite', () => {
   test.beforeEach(async ({ page }) => {
     homePage = new HomePage(page);
     mcpRunner = new MCPTestRunner(page);
+    await blockAds(page);
     
     // Navigate using MCP
     await mcpRunner.navigateWithMCP('https://automationexercise.com');
@@ -22,7 +24,9 @@ test.describe('MCP Enhanced Automation Exercise Test Suite', () => {
 
   test('MCP-TC01: Register User with Enhanced Validation', async ({ page }) => {
     await allure.description('Complete user registration flow with MCP validation');
-    await allure.tag('mcp', 'registration', 'enhanced');
+    await allure.tag('mcp');
+    await allure.tag('registration');
+    await allure.tag('enhanced');
     
     await mcpRunner.runTestWithMCP('TC01-Register-User', async () => {
       // Step 1: Validate home page with MCP
@@ -49,9 +53,10 @@ test.describe('MCP Enhanced Automation Exercise Test Suite', () => {
       expect(signupSubmitted).toBe(true);
       
       // Step 6: Validate registration form with MCP
-      const regFormValid = await mcpRunner.validateElementWithMCP('.title.text-center b', 'ENTER ACCOUNT INFORMATION', 'Registration form header');
-      
-      if (regFormValid) {
+      const regFormValid = await mcpRunner.validateElementWithMCP('h2.title b:has-text("Enter Account Information")', 'ENTER ACCOUNT INFORMATION', 'Registration form header');
+      expect(regFormValid).toBe(true);
+
+      {
         // Step 7: Fill registration form with MCP
         const testData = TestDataProvider.getRegistrationTestData();
         
@@ -80,19 +85,22 @@ test.describe('MCP Enhanced Automation Exercise Test Suite', () => {
         
         // Step 9: Validate account creation with MCP
         const accountCreated = await mcpRunner.validateElementWithMCP('h2[data-qa="account-created"]', 'ACCOUNT CREATED!', 'Account created message');
-        
-        if (accountCreated) {
+        expect(accountCreated).toBe(true);
+
+        {
           // Step 10: Continue and validate login with MCP
           await mcpRunner.clickElementWithMCP('[data-qa="continue-button"]', 'Continue button');
           
           // Step 11: Validate logged in state with MCP
-          const loggedIn = await mcpRunner.validateElementWithMCP('.navbar-nav li', 'Logged in as', 'Logged in indicator');
+          const loggedIn = await mcpRunner.validateElementWithMCP('.navbar-nav li:has-text("Logged in as")', `Logged in as ${userName}`, 'Logged in indicator');
+          expect(loggedIn).toBe(true);
           
           // Step 12: Delete account with MCP (cleanup)
           await mcpRunner.clickElementWithMCP('a[href="/delete_account"]', 'Delete account button');
           
           // Step 13: Validate account deletion with MCP
           const accountDeleted = await mcpRunner.validateElementWithMCP('h2[data-qa="account-deleted"]', 'ACCOUNT DELETED!', 'Account deleted message');
+          expect(accountDeleted).toBe(true);
           
           // Step 14: Capture success screenshot
           await mcpRunner.captureScreenshotWithMCP('registration-success');
@@ -108,42 +116,58 @@ test.describe('MCP Enhanced Automation Exercise Test Suite', () => {
     });
   });
 
-  test('MCP-TC02: Login with API Validation', async ({ page }) => {
+  test('MCP-TC02: Login with API Validation', async ({ page, request }) => {
     await allure.description('Login test with API endpoint validation');
-    await allure.tag('mcp', 'login', 'api-validation');
+    await allure.tag('mcp');
+    await allure.tag('login');
+    await allure.tag('api-validation');
     
-    await mcpRunner.runTestWithMCP('TC02-Login-User', async () => {
-      // Step 1: Navigate to login page with MCP
-      await mcpRunner.clickElementWithMCP('a[href="/login"]', 'Login navigation');
+    // Create a throwaway account through the public API so the login is real
+    const api = new ApiHelper(request);
+    const user = TestDataProvider.generateUser();
+    await api.createAccount(user);
+
+    try {
+      await mcpRunner.runTestWithMCP('TC02-Login-User', async () => {
+        // Step 1: Navigate to login page with MCP
+        await mcpRunner.clickElementWithMCP('a[href="/login"]', 'Login navigation');
       
-      // Step 2: Validate login form with MCP
-      const loginFormValid = await mcpRunner.validateElementWithMCP('.login-form h2', 'Login to your account', 'Login form header');
-      expect(loginFormValid).toBe(true);
+        // Step 2: Validate login form with MCP
+        const loginFormValid = await mcpRunner.validateElementWithMCP('.login-form h2', 'Login to your account', 'Login form header');
+        expect(loginFormValid).toBe(true);
       
-      // Step 3: Fill login credentials with MCP
-      await mcpRunner.fillFormWithMCP('[data-qa="login-email"]', 'testuser@example.com', 'Login email');
-      await mcpRunner.fillFormWithMCP('[data-qa="login-password"]', 'password123', 'Login password');
+        // Step 3: Fill login credentials with MCP
+        await mcpRunner.fillFormWithMCP('[data-qa="login-email"]', user.email, 'Login email');
+        await mcpRunner.fillFormWithMCP('[data-qa="login-password"]', user.password, 'Login password');
       
-      // Step 4: Submit login with MCP
-      await mcpRunner.clickElementWithMCP('[data-qa="login-button"]', 'Login submit button');
+        // Step 4: Submit login with MCP
+        await mcpRunner.clickElementWithMCP('[data-qa="login-button"]', 'Login submit button');
+        const loggedIn = await mcpRunner.validateElementWithMCP('.navbar-nav li:has-text("Logged in as")', `Logged in as ${user.name}`, 'Logged in indicator');
+        expect(loggedIn).toBe(true);
+
+        // Step 5: Validate the user exists through the REST API
+        const apiValid = await mcpRunner.validateAPIResponseWithMCP(`https://automationexercise.com/api/getUserDetailByEmail?email=${encodeURIComponent(user.email)}`);
+        expect(apiValid).toBe(true);
       
-      // Step 5: Validate API response with MCP
-      const apiValid = await mcpRunner.validateAPIResponseWithMCP('https://automationexercise.com/api/getUserDetailByEmail');
+        // Step 6: Capture performance metrics with MCP
+        await mcpRunner.executeCustomMCPAction('check_performance_metrics', {
+          page: 'login',
+          maxLoadTime: 3000
+        });
       
-      // Step 6: Capture performance metrics with MCP
-      await mcpRunner.executeCustomMCPAction('check_performance_metrics', {
-        page: 'login',
-        maxLoadTime: 3000
+        // Step 7: Capture screenshot for documentation
+        await mcpRunner.captureScreenshotWithMCP('login-attempt');
       });
-      
-      // Step 7: Capture screenshot for documentation
-      await mcpRunner.captureScreenshotWithMCP('login-attempt');
-    });
+    } finally {
+      await api.deleteAccount(user.email, user.password);
+    }
   });
 
   test('MCP-TC03: Product Search with Enhanced Validation', async ({ page }) => {
     await allure.description('Product search with comprehensive validation');
-    await allure.tag('mcp', 'search', 'products');
+    await allure.tag('mcp');
+    await allure.tag('search');
+    await allure.tag('products');
     
     await mcpRunner.runTestWithMCP('TC03-Product-Search', async () => {
       // Step 1: Navigate to products page with MCP
@@ -158,8 +182,8 @@ test.describe('MCP Enhanced Automation Exercise Test Suite', () => {
       await mcpRunner.clickElementWithMCP('#submit_search', 'Search button');
       
       // Step 4: Validate search results with MCP
-      const searchResultsValid = await mcpRunner.validateElementWithMCP('.title.text-center', 'PRODUCTS', 'Search results title');
-      console.log('Search results validation (case-insensitive):', searchResultsValid);
+      const searchResultsValid = await mcpRunner.validateElementWithMCP('.title.text-center', 'SEARCHED PRODUCTS', 'Search results title');
+      expect(searchResultsValid).toBe(true);
       
       // Step 5: Validate product count with MCP
       const productCount = await page.locator('.features_items .col-sm-4').count();
@@ -180,16 +204,21 @@ test.describe('MCP Enhanced Automation Exercise Test Suite', () => {
 
   test('MCP-TC04: Contact Form with Email Verification', async ({ page }) => {
     await allure.description('Contact form submission with email verification');
-    await allure.tag('mcp', 'contact', 'email-verification');
+    await allure.tag('mcp');
+    await allure.tag('contact');
+    await allure.tag('email-verification');
     
     await mcpRunner.runTestWithMCP('TC04-Contact-Form', async () => {
       // Step 1: Navigate to contact page with MCP
       await mcpRunner.clickElementWithMCP('a[href="/contact_us"]', 'Contact Us navigation');
+      // The form's submit handler is attached by page JS — wait for full load before using it
+      await page.waitForURL('**/contact_us', { waitUntil: 'load' });
       
       // Step 2: Validate contact form with MCP
       const contactFormValid = await mcpRunner.validateElementWithMCP('text=GET IN TOUCH', undefined, 'Contact form header');
-      
-      if (contactFormValid) {
+      expect(contactFormValid).toBe(true);
+
+      {
         // Step 3: Fill contact form with MCP
         const contactData = TestDataProvider.getContactTestData()[0];
         
@@ -198,17 +227,18 @@ test.describe('MCP Enhanced Automation Exercise Test Suite', () => {
         await mcpRunner.fillFormWithMCP('[data-qa="subject"]', contactData.subject, 'Contact subject');
         await mcpRunner.fillFormWithMCP('[data-qa="message"]', contactData.message, 'Contact message');
         
-        // Step 4: Submit form with MCP
-        await mcpRunner.clickElementWithMCP('[data-qa="submit-button"]', 'Contact form submit');
-        
-        // Step 5: Handle alert dialog
-        page.on('dialog', async dialog => {
+        // Step 4: Register dialog handler before the action that may trigger it
+        page.once('dialog', async dialog => {
           console.log(`[MCP] Dialog appeared: ${dialog.message()}`);
           await dialog.accept();
         });
-        
+
+        // Step 5: Submit form with MCP
+        await mcpRunner.clickElementWithMCP('[data-qa="submit-button"]', 'Contact form submit');
+
         // Step 6: Validate success message with MCP
         const successValid = await mcpRunner.validateElementWithMCP('.status.alert.alert-success', 'Success!', 'Success message');
+        expect(successValid).toBe(true);
         
         // Step 7: Execute email verification with MCP
         await mcpRunner.executeCustomMCPAction('send_email_verification', {
@@ -224,7 +254,9 @@ test.describe('MCP Enhanced Automation Exercise Test Suite', () => {
 
   test('MCP-TC05: Cart Operations with State Validation', async ({ page }) => {
     await allure.description('Shopping cart operations with state validation');
-    await allure.tag('mcp', 'cart', 'state-validation');
+    await allure.tag('mcp');
+    await allure.tag('cart');
+    await allure.tag('state-validation');
     
     await mcpRunner.runTestWithMCP('TC05-Cart-Operations', async () => {
       // Step 1: Navigate to products and add item with MCP
@@ -242,7 +274,7 @@ test.describe('MCP Enhanced Automation Exercise Test Suite', () => {
         await page.waitForTimeout(2000);
         
         // Try multiple strategies for add to cart
-        const addToCartSuccess = await mcpRunner.clickElementWithMCP('.features_items .col-sm-4:first-child .add-to-cart', 'Add to cart button');
+        const addToCartSuccess = await mcpRunner.clickElementWithMCP('.features_items .col-sm-4 >> nth=0 >> .productinfo .add-to-cart', 'Add to cart button');
         
         if (!addToCartSuccess) {
           // Try alternative selector
@@ -258,14 +290,15 @@ test.describe('MCP Enhanced Automation Exercise Test Suite', () => {
           // Modal might not appear
         }
       } catch (error) {
-        console.log('[MCP] Add to cart failed:', error.message);
+        console.log('[MCP] Add to cart failed:', (error as Error).message);
       }
       
       // Step 3: Navigate to cart with MCP
       await mcpRunner.clickElementWithMCP('a[href="/view_cart"]', 'View cart button');
       
       // Step 4: Validate cart contents with MCP
-      const cartItemsCount = await page.locator('#cart_items .cart_info').count();
+      // One <tr> per product ('#cart_items .cart_info' is the table wrapper and always exists)
+      const cartItemsCount = await page.locator('#cart_info_table tbody tr').count();
       console.log(`[MCP] Cart contains ${cartItemsCount} items`);
       expect(cartItemsCount).toBeGreaterThan(0);
       

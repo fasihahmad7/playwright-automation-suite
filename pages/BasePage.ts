@@ -8,9 +8,11 @@ export class BasePage {
   }
 
   async navigateTo(url: string) {
-    const baseUrl = 'https://automationexercise.com';
-    const fullUrl = url.startsWith('http') ? url : `${baseUrl}${url}`;
-    await this.page.goto(fullUrl, { waitUntil: 'networkidle' });
+    // Relative URLs are resolved against `baseURL` in playwright.config.ts.
+    // 'domcontentloaded' is reliable and fast; each test waits for its own specific
+    // elements, so waiting for all network activity (networkidle) just adds flakiness
+    // on live sites that continuously fire analytics/tracking requests.
+    await this.page.goto(url, { waitUntil: 'domcontentloaded' });
   }
 
   async waitForElement(locator: Locator, timeout: number = 60000) {
@@ -60,7 +62,7 @@ export class BasePage {
   }
 
   async waitForPageLoad() {
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('load');
   }
 
   async handleAlert(action: 'accept' | 'dismiss' = 'accept') {

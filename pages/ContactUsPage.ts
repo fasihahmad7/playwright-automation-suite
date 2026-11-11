@@ -10,6 +10,7 @@ export class ContactUsPage extends BasePage {
   readonly submitButton: Locator;
   readonly successMessage: Locator;
   readonly getInTouchText: Locator;
+  readonly homeButton: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -21,6 +22,7 @@ export class ContactUsPage extends BasePage {
     this.submitButton = page.locator('[data-qa="submit-button"]');
     this.successMessage = page.locator('.status.alert.alert-success');
     this.getInTouchText = page.locator('text=GET IN TOUCH');
+    this.homeButton = page.locator('#form-section a.btn-success');
   }
 
   async isGetInTouchVisible(): Promise<boolean> {
@@ -28,9 +30,7 @@ export class ContactUsPage extends BasePage {
       await this.getInTouchText.waitFor({ timeout: 10000 });
       return await this.getInTouchText.isVisible();
     } catch {
-      // Alternative check - look for the text in page content
-      const pageContent = await this.page.content();
-      return pageContent.includes('GET IN TOUCH');
+      return false;
     }
   }
 
@@ -42,17 +42,11 @@ export class ContactUsPage extends BasePage {
   }
 
   async submitForm() {
+    // Dialog handler must be registered before the action that may trigger it
+    this.page.once('dialog', async dialog => {
+      await dialog.accept();
+    });
     await this.clickElement(this.submitButton);
-    
-    // Handle alert if present
-    try {
-      await this.page.waitForTimeout(1000);
-      this.page.on('dialog', async dialog => {
-        await dialog.accept();
-      });
-    } catch (error) {
-      // Alert might not be present
-    }
   }
 
   async isSuccessMessageDisplayed(): Promise<boolean> {
@@ -73,6 +67,11 @@ export class ContactUsPage extends BasePage {
       return await this.getText(this.successMessage);
     }
     return '';
+  }
+
+  async clickHome() {
+    await this.clickElement(this.homeButton);
+    await this.page.waitForURL(url => new URL(url).pathname === '/');
   }
 
   async uploadFile(filePath: string) {

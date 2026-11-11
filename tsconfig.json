@@ -15,8 +15,7 @@
     "paths": {
       "@pages/*": ["./pages/*"],
       "@utils/*": ["./utils/*"],
-      "@tests/*": ["./tests/*"],
-      "@fixtures/*": ["./fixtures/*"]
+      "@tests/*": ["./tests/*"]
     },
     "types": ["node", "@playwright/test"]
   },
@@ -24,7 +23,6 @@
     "tests/**/*",
     "pages/**/*",
     "utils/**/*",
-    "fixtures/**/*",
     "playwright.config.ts"
   ],
   "exclude": [

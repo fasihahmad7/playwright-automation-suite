@@ -1,9 +1,30 @@
 import { faker } from '@faker-js/faker';
 
+export interface UserData {
+  name: string;
+  email: string;
+  password: string;
+  title: string;
+  day: string;
+  month: string;
+  year: string;
+  firstName: string;
+  lastName: string;
+  company: string;
+  address: string;
+  address2: string;
+  country: string;
+  state: string;
+  city: string;
+  zipcode: string;
+  mobileNumber: string;
+}
+
 export class TestDataProvider {
   static generateRandomEmail(): string {
-    const timestamp = Date.now();
-    return `test${timestamp}@example.com`;
+    // Timestamp + random suffix so parallel workers never collide on the same email
+    const unique = `${Date.now()}${Math.floor(Math.random() * 10000)}`;
+    return `test${unique}@example.com`;
   }
 
   static generateRandomName(): string {
@@ -22,7 +43,7 @@ export class TestDataProvider {
       city: faker.location.city(),
       state: faker.location.state(),
       zipcode: faker.location.zipCode(),
-      mobileNumber: faker.phone.number('##########')
+      mobileNumber: faker.string.numeric(10)
     };
   }
 
@@ -79,6 +100,27 @@ export class TestDataProvider {
       city: 'Test City',
       zipcode: '12345',
       mobileNumber: '1234567890'
+    };
+  }
+
+  /** A complete, unique user — same data is used for API creation and UI verification. */
+  static generateUser(): UserData {
+    const data = this.getRegistrationTestData();
+    return {
+      ...data,
+      name: this.generateRandomName(),
+      email: this.generateRandomEmail()
+    };
+  }
+
+  /** Dummy card accepted by the practice site's fake payment page. */
+  static getCardDetails() {
+    return {
+      nameOnCard: 'John Doe',
+      cardNumber: '4111111111111111',
+      cvc: '123',
+      expiryMonth: '12',
+      expiryYear: '2030'
     };
   }
 }

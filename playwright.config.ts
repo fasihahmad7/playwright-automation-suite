@@ -5,17 +5,24 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './tests',
+  /* Intentionally failing demo tests only run via `npm run test:failures` */
+  testIgnore: '**/FailureDemo.spec.ts',
+  /* Per-test timeout. These flows run 10-20 sequential live-site actions with
+     retry strategies, so the 30s default is too tight under parallel load. */
+  timeout: 90000,
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
-  /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  /* Retry once locally to handle transient live-site slowness; twice on CI. */
+  retries: process.env.CI ? 2 : 1,
+  /* Limit concurrency against the live external site: more than 2 parallel browsers
+     causes rate-limiting / slow responses that flake tests. CI always uses 1. */
+  workers: process.env.CI ? 1 : 2,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
-    ['html'],
+    // Don't auto-open the report after a failed run (it blocks the terminal); use `npm run test:report`
+    ['html', { open: 'never' }],
     ['json', { outputFile: 'test-results.json' }],
     ['junit', { outputFile: 'test-results.xml' }],
     ['allure-playwright', { 

@@ -17,13 +17,13 @@ export class MyAccountPage extends BasePage {
     this.accountCreatedMessage = page.locator('h2[data-qa="account-created"]');
     this.accountDeletedMessage = page.locator('h2[data-qa="account-deleted"]');
     this.continueButton = page.locator('[data-qa="continue-button"]');
-    this.loggedInAsText = page.locator('.navbar-nav li');
+    this.loggedInAsText = page.locator('.navbar-nav li').filter({ hasText: 'Logged in as' });
   }
 
   async isLoggedIn(): Promise<boolean> {
     try {
-      const pageContent = await this.page.content();
-      return pageContent.includes('Logged in as');
+      await this.loggedInAsText.waitFor({ timeout: 10000 });
+      return await this.loggedInAsText.isVisible();
     } catch {
       return false;
     }
@@ -53,9 +53,7 @@ export class MyAccountPage extends BasePage {
 
   async getLoggedInText(): Promise<string> {
     try {
-      const pageContent = await this.page.content();
-      const match = pageContent.match(/Logged in as[^<]*/i);
-      return match ? match[0] : '';
+      return (await this.getText(this.loggedInAsText)).trim();
     } catch {
       return '';
     }
@@ -71,11 +69,7 @@ export class MyAccountPage extends BasePage {
   }
 
   async clickContinue() {
-    try {
-      await this.clickElement(this.continueButton);
-    } catch (error) {
-      console.log('Continue button not found or not clickable:', error);
-    }
+    await this.clickElement(this.continueButton);
   }
 
   async getWelcomeMessage(): Promise<string> {
